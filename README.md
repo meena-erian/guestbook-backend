@@ -93,7 +93,7 @@ Status: 401 Unauthorized
 
 ## Get new messages or new guests
 ```
-GET /notification?uid=UserId
+GET /notification?index=UserId
 ```
  Used to update the cliend side with brief information about new/unread messages and possibly new users too. if `UserId` is set, it will return any new users registered after the user with the id `UserId`. If omitted, it will return all users from the begining, in addition to unread messages. The client is expected to load the initial content of the app be calling this endpoint without `UserId` at first and to call it periodically with `UserId` of the last guest loaded on the client side to stay updated.
 
@@ -155,9 +155,9 @@ Status: 404 Not Found
 
 ## Send a message
 ```
-POST /message/:Id
+POST /message/:ConversationId
 ```
-Used to send a message to a specific user where `Id` is the Id of that user. (Or in the future it will be possible to specifiy a conversation Id istead for conversations with multiple users)
+Used to send a message to a specific chat where `ConversationId` can be generated as the result of contatenating both the Ids of the two users starting this conversation after sorting the ids ascendingly. (this way it's possible to use the same converation Id for a conversation between more than two users in case the app is to be updated to support this feature)
 
 **Required Request Headers**
 
@@ -197,9 +197,11 @@ Status: 404 Not Found
 
 ## Get unread messages
 ```
-GET /message/:ConversationId?index=:Cursor
+GET /messages/:ConversationId?index=:MessageId
 ```
-Used to all messages in `ConversationId` after `Cursor` where `Cursor` is the Id of the last seen message. When `Cursor` is omited, it returns all messages starting from the first message in the specified conversation.
+Used to get all messages in `ConversationId` after the message of id `MessageId` where `MessageId` is the Id of the last seen message. When `MessageId` is omited, it returns all messages starting from the first message in the specified conversation.
+
+**Note**: Please note that this endpoint is /message**s** (plural) in contrary to all other /message end points. That's because this is the only endpoint where there's more than one message in context.
 
 **Required Request Headers**
 
