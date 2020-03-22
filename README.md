@@ -9,6 +9,31 @@
 
 # API end points
 
+## Check the availability of a username
+```
+GET /user/:UserName
+```
+ Checks if `UserName` is a valid username and not in user
+
+**Responses**
+
+
+```json
+Status: 204 No Content
+```
+
+```json
+Status: 451 Unavailable
+```
+
+<br>
+<br>
+<br>
+<br>
+<br>
+
+
+
 ## Log in
 ```
 POST /user/login
