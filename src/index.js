@@ -1,28 +1,30 @@
 var MongoClient = require("mongodb").MongoClient;
 var url = "mongodb://localhost:27017/";
 var express = require("express");
+var md5 = require('md5');
+var uniqid = require('uniqid');
 var cookieParser = require("cookie-parser");
 var app = express();
-var fs = require("fs");
+//var fs = require("fs");
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+let validUsername = /^[a-zA-Z0-9]{5,30}$/;
 
 MongoClient.connect(url, function(err, db) {
   if (err) throw err;
   dbo = db.db("guestbookdb");
+  app.get("/user/:username", function(req, res){
 
-  app.get("/test", function(req, res) {
+    req.params.username
+  });
+  app.post("/user/login", function(req, res) {
     res.setHeader("Content-Type", "application/json");
-    let dateo = new Date();
-    dbo.collection("visits")
-       .insertOne({ time: dateo.getSeconds() }, function(err, res) {
-         if (err) throw err;
-      }
-    );
-    var visits = dbo
-      .collection("visits")
-      .find()
-      .toArray(function(err, arr) {
-        res.end(JSON.stringify(arr));
-      });
+    if(!req.body.username || !req.body.password || !validUsername.test(req.body.username)){
+      res.status(401).end();
+    }
+    
+    res.end(JSON.stringify({id : md5(uniqid())}));
   });
 
   var server = app.listen(8080, function() {
