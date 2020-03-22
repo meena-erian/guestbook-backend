@@ -14,9 +14,27 @@ let validUsername = /^[a-zA-Z0-9]{5,30}$/;
 MongoClient.connect(url, function(err, db) {
   if (err) throw err;
   dbo = db.db("guestbookdb");
+
   app.get("/user/:username", function(req, res) {
-    req.params.username;
+    res.setHeader("Content-Type", "application/json");
+    if (! validUsername.test(req.params.username)) {
+      res.status(451).end();
+    }
+    dbo
+      .collection("users")
+      .findOne(
+        { username: req.params.username},
+        function(err, findRes) {
+          if (err) throw err;
+          if (findRes) {
+            res.status(401).end();
+          } else {
+            res.status(204).end();
+          }
+        }
+      );
   });
+
   app.post("/user/login", function(req, res) {
     res.setHeader("Content-Type", "application/json");
     if (
@@ -89,8 +107,10 @@ MongoClient.connect(url, function(err, db) {
                     username: req.body.username,
                     userId: InsertRes._id,
                     start: new Date().getTime()
+                  },function (err, sessionInsertRes){
+                    if (err) throw err;
+                    res.status(200).end(JSON.stringify({ id: sid }));
                   });
-                  res.status(200).end(JSON.stringify({ id: sid }));
                 }
               }
             );
