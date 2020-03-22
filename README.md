@@ -114,19 +114,21 @@ Status: 200 Ok
     users : [
         {
             username : USERNAME,
-            id : ID
+            id : USER_ID
         },
         {
             username : USERNAME,
-            id : ID 
+            id : USER_ID 
         }...
     ],
     messages : [
         {
-            sender : USERNAME
+            sender : USERNAME,
+            id : CONVERSATION_ID
         },
         {
-            sender : USERNAME
+            sender : USERNAME,
+            id : CONVERSATION_ID
         }...
     ]
 }
