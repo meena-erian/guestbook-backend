@@ -4,7 +4,7 @@ var url = "mongodb://localhost:27017/";
 var express = require("express");
 var md5 = require("md5");
 var uniqid = require("uniqid");
-var cookieParser = require("cookie-parser");
+//var cookieParser = require("cookie-parser");
 var app = express();
 //var fs = require("fs");
 
@@ -261,62 +261,125 @@ MongoClient.connect(url, function(err, db) {
         2- The other person exists in the database
     */
     var otherUser = "";
-    switch(String(session['userId'])){
+    switch (String(session["userId"])) {
       case chatId[0]:
         otherUser = chatId[1];
-      break;
+        break;
       case chatId[1]:
         otherUser = chatId[0];
-      break;
+        break;
       default:
         res.status(401).end('{"error" : "Access denied!"}');
     }
     //Now lets make sure the other user exists
-    var idLookupResult = await dbo.collection("users").findOne({'_id' : new ObjectId(otherUser) });
-    if(!idLookupResult){
+    var idLookupResult = await dbo
+      .collection("users")
+      .findOne({ _id: new ObjectId(otherUser) });
+    if (!idLookupResult) {
       res.status(404).end('{"error" : "User not found"}');
     }
     //Now everything is ok but we still don't know if there's any messages there
     var query = {};
-    if(req.query.index){
-      query = {'_id': { $gt: new ObjectId(req.query.index) },'chatId' : chatId.join('-')}
+    if (req.query.index) {
+      query = {
+        _id: { $gt: new ObjectId(req.query.index) },
+        chatId: chatId.join("-")
+      };
+    } else {
+      query = { chatId: chatId.join("-") };
     }
-    else{
-      query = {'chatId' : chatId.join('-')};
-    }
-    var msgs = await dbo.collection('messages').find(query);
-    if(!await msgs.count()){
+    var msgs = await dbo.collection("messages").find(query);
+    if (!(await msgs.count())) {
       //No new messages
       res.status(204).end('{"messages" : []');
     }
     res.status(200).end(JSON.stringify(await msgs.toArray()));
   });
 
-
-  app.patch("/message/:Id", async function(req, res) {
+  app.patch("/message/:id", async function(req, res) {
     res.setHeader("Content-Type", "application/json");
     if (!req.headers.authorization) {
-      res.status(401).end();
+      res.status(401).end('{ error: "Bad credentials!" }');
     }
     var session = await dbo
       .collection("sessions")
       .findOne({ sessionId: req.headers.authorization });
-    if (!session) {
-      res.status(401).end();
+    if (!session || !req.params.id) {
+      res.status(401).end('{ error: "Bad credentials!" }');
     }
+    //Now lets find the message and see if it belongs to the authorized user
+    var msg = await dbo
+      .collection("messages")
+      .findOne({ _id: new ObjectId(req.params.id) });
+    if (!msg) {
+      res
+        .status(404)
+        .end('{"error" : "The message you\'r tring to edit does not exist"}');
+    }
+    if (!req.body.content || !req.body.content.length) {
+      res.status(401).end('{"error" : "Content is missing!"}');
+    }
+    if (msg.sender !== String(session.userId)) {
+      res
+        .status(401)
+        .end(
+          '{"error" : "You do not have permission to edit the specified message!"}'
+        );
+    }
+    console.log("Now we're going to update the document object");
+    var editingDbResponse = await dbo
+      .collection("messages")
+      .updateOne(
+        { _id: new ObjectId(req.params.id) },
+        { $set : { content: req.body.content }},
+        {upsert: true}
+      );
+    if (!editingDbResponse) {
+      res
+        .status(500)
+        .end(
+          '{"error" : "Somethng went wrong! Perhapes the message you where trying to edit was deleted by another session at the very moment you where trying to edit it"}'
+        );
+    }
+    res.status(204).end();
   });
 
-  app.delete("/message/:Id", async function(req, res) {
+  app.delete("/message/:id", async function(req, res) {
     res.setHeader("Content-Type", "application/json");
     if (!req.headers.authorization) {
-      res.status(401).end();
+      res.status(401).end('{ "error": "Bad credentials!" }');
     }
     var session = await dbo
       .collection("sessions")
       .findOne({ sessionId: req.headers.authorization });
-    if (!session) {
-      res.status(401).end();
+    if (!session || !req.params.id) {
+      res.status(401).end('{ "error": "Bad credentials!!" }');
     }
+    //Now lets find the message and see if it belongs to the authorized user
+    var msg = await dbo
+      .collection("messages")
+      .findOne({ _id: new ObjectId(req.params.id) });
+    if (!msg) {
+      res.status(404).end('{"error" : "Message not found"}');
+    }
+    else if (msg.sender !== String(session.userId)) {
+      res
+        .status(401)
+        .end(
+          '{"error" : "You do not have permission to delete this message!"}'
+        );
+    }
+    var deletingDbResponse = await dbo
+      .collection("messages")
+      .deleteOne({ _id: new ObjectId(req.params.id) });
+    if (!deletingDbResponse) {
+      res
+        .status(500)
+        .end(
+          '{"error" : "Something went wrong! Maybe the message was already deleted by an another session at the same time"}'
+        );
+    }
+    res.status(204).end();
   });
 
   var server = app.listen(8080, function() {
