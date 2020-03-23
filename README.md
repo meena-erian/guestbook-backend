@@ -55,7 +55,7 @@ POST /user/login
 ```json
 Status: 200 Ok
 {
-    token : ID_TOKEN
+    "token": "147a4b3eb0a06002902b292182e05a14"
 }
 ```
 
@@ -118,9 +118,9 @@ Status: 401 Unauthorized
 
 ## Get new messages or new guests
 ```
-GET /notification?index=UserId
+GET /notification?index=Timestamp
 ```
- Used to update the cliend side with brief information about new/unread messages and possibly new users too. if `UserId` is set, it will return any new users registered after the user with the id `UserId`. If omitted, it will return all users from the begining, in addition to unread messages. The client is expected to load the initial content of the app be calling this endpoint without `UserId` at first and to call it periodically with `UserId` of the last guest loaded on the client side to stay updated.
+ Used to update the cliend side with brief information about new/unread messages and possibly new users too. if `Timestamp` is set, it will return any new users registered after `Timestamp`. If omitted, it will return all users from the begining, in addition to unread messages. The client is expected to load the initial content of the app by calling this endpoint without `Timestamp` at first and to call it periodically with  the registration `Timestamp` of the last guest fetched to the client side's contact list to stay updated.
 
  **Note**: The messages array returned by this endpoint does NOT contain messages contents but only header information of the messages. To get the content of the messages refer to the *get unread messages* endpoint
 
