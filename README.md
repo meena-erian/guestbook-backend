@@ -91,21 +91,21 @@ POST /user/signup
 ```json
 Status: 200 Ok
 {
-    token : ID_TOKEN
+    "id" : ID_TOKEN
 }
 ```
 
 ```json
 Status: 451 Unavailable
 {
-    error: "Username already in use"
+    "error": "Username already in use"
 }
 ```
 
 ```json
 Status: 401 Unauthorized
 {
-    error: "Bad credentials"
+    "error": "Bad credentials"
 }
 ```
 
@@ -136,24 +136,26 @@ GET /notification?index=Timestamp
 ```json
 Status: 200 Ok
 {
-    users : [
+    "users" : [
         {
-            username : USERNAME,
-            id : USER_ID
+            "username" : USERNAME,
+            "_id" : USER_ID,
+            "registered" TIMESTAMP
         },
         {
-            username : USERNAME,
-            id : USER_ID 
+            "username" : USERNAME,
+            "_id" : USER_ID ,
+            "registered" TIMESTAMP
         }...
     ],
-    messages : [
+    "messages" : [
         {
-            sender : USERNAME,
-            id : CONVERSATION_ID
+            "sender" : USERNAME,
+            "_id" : CONVERSATION_ID
         },
         {
-            sender : USERNAME,
-            id : CONVERSATION_ID
+            "sender" : USERNAME,
+            "_id" : CONVERSATION_ID
         }...
     ]
 }
@@ -180,15 +182,21 @@ Status: 404 Not Found
 
 ## Send a message
 ```
-POST /message/:ConversationId
+POST /message/:Id
 ```
-Used to send a message to a specific chat where `ConversationId` can be generated as the result of contatenating both the Ids of the two users starting this conversation after sorting the ids ascendingly. (this way it's possible to use the same converation Id for a conversation between more than two users in case the app is to be updated to support this feature)
+Used to send a message to a user where `Id` can either be the unique _id of the user meant to recieve the message or the chat id which can be generated as the result of contatenating both the Ids of the two users starting this conversation with a hyphen character `-` after sorting the ids ascendingly. (this way it's possible to use the same converation Id for a conversations between more than two users in case the app is to be updated to support this feature)
 
 **Required Request Headers**
 
  | Header | Value |
  |--------|-------|
  | Authorization | Session id token of the message author |
+
+**Required POST Parameters**
+
+ | Parameter | Value |
+ |-----------|-------|
+ | content | the mesesage contect |
 
 **Response**
 

@@ -1,4 +1,5 @@
 var MongoClient = require("mongodb").MongoClient;
+var ObjectId = require("mongodb").ObjectID;
 var url = "mongodb://localhost:27017/";
 var express = require("express");
 var md5 = require("md5");
@@ -53,7 +54,7 @@ MongoClient.connect(url, function(err, db) {
               {
                 sessionId: sid,
                 username: req.body.username,
-                userId: findRes._id,
+                userId: String(findRes._id),
                 start: new Date().getTime()
               },
               function(err, sessionInsertRes) {
@@ -92,7 +93,7 @@ MongoClient.connect(url, function(err, db) {
               {
                 username: req.body.username,
                 password: req.body.password,
-                registered: new Date().getTime()
+                registered: (new Date()).getTime()
               },
               function(err, userInsertResult) {
                 if (err) throw err;
@@ -101,7 +102,7 @@ MongoClient.connect(url, function(err, db) {
                   {
                     sessionId: sid,
                     username: req.body.username,
-                    userId: userInsertResult["insertedId"],
+                    userId: String(userInsertResult["insertedId"]),
                     start: new Date().getTime()
                   },
                   function(err, sessionInsertRes) {
@@ -129,16 +130,19 @@ MongoClient.connect(url, function(err, db) {
     }
     var usersQuery = {};
     if (req.query.index) {
-      usersQuery = { registered: { $gt: parseInt(req.query.index) } };
+      if(isNaN(req.query.index)){
+        usersQuery = { "_id": { $gt: ObjectId(req.query.index) } };
+      }
+      else{
+        usersQuery = { registered: { $gt: parseInt(req.query.index) } };
+      }
     }
     var users = await dbo
       .collection("users")
       .find(usersQuery, { sort: { registered: 1 }, fields: { password: 0 } });
-    var mesgs = await dbo.collection("messages").find({
-      receiver: session["userId"],
-      status: "sent"
-    });
-    console.log(await users.count());
+    var query = {'receiver': String(session.userId), status: "sent"};
+    console.log(query);
+    var mesgs = await dbo.collection("messages").find(query);
     var jsonResponse = {};
     var noResponse = true;
     if ((await users.count()) > 0) {
@@ -156,7 +160,102 @@ MongoClient.connect(url, function(err, db) {
     }
   });
 
-  app.post("/message/:Id", async function (req, res){
+  app.post("/message/:id", async function(req, res) {
+    res.setHeader("Content-Type", "application/json");
+    if (!req.headers.authorization) {
+      res.status(401).end();
+    }
+    var session = await dbo
+      .collection("sessions")
+      .findOne({ sessionId: req.headers.authorization });
+    if (!session) {
+      //sender must provid a valid login session
+      res.status(401).end('{"error" : "Bad credentials!"}');
+    }
+    if (!req.params.id) {
+      //id parameter is required
+      res.status(404).end('{"error" : "No recipient specified!"}');
+    }
+    if (!req.body.content) {
+      //Message body is required
+      res.status(401).end('{"error" : "No content provided!"}');
+    }
+    var conversationId = "";
+    var receiver = "";
+    if (req.params.id.indexOf("-") !== -1) {
+      //this means that the given id is a conversation id
+      let chaters = req.params.id.split("-", 2);
+      switch (session["userId"]) {
+        case chaters[0]:
+          receiver = chaters[1];
+          break;
+        case chaters[1]:
+          receiver = chaters[0];
+          break;
+        default:
+          res.status(404).end();
+      }
+      //Now lets make sure that the user specified as receiver exists
+        userReceiver = await dbo
+          .collection("users")
+          .findOne({ _id: new ObjectId(receiver) });
+      if (!userReceiver) {
+        res
+          .status(404)
+          .end('{"error" : "User \'' + receiver + "' not found\"}");
+      }
+      //Now lets recreate the chat id for incase it's not in the correctorder
+      conversationId = [String(session.userId), receiver].sort().join("-");
+    } else {
+      //this means that the fiven id is a user id of the user intended to recieve the message
+      receiver = req.params.id;
+      //Now lets make sure that the user specified as receiver exists
+        userReceiver = await dbo
+          .collection("users")
+          .findOne({ _id: new ObjectId(receiver) });
+      if (!userReceiver) {
+        res
+          .status(404)
+          .end('{"error" : "User \'' + receiver + "' not found\"}");
+      }
+      conversationId = [String(session.userId), receiver].sort().join("-");
+    }
+    //Now it's safe to insert the message
+    dbo.collection("messages").insertOne(
+      {
+        // _id auto
+        chatId: conversationId,
+        time: new Date().getTime(),
+        sender: String(session.userId),
+        receiver: receiver,
+        content: req.body.content,
+        status: "sent"
+      },
+      function(err, insertMessageRes) {
+        if (err) throw err;
+        console.log(insertMessageRes);
+        res
+          .status(200)
+          .end(JSON.stringify({ id: String(insertMessageRes["insertedId"]) }));
+      }
+    );
+  });
+
+  app.get("/messages/:Id", async function(req, res) {
+    res.setHeader("Content-Type", "application/json");
+    if (!req.headers.authorization) {
+      res.status(401).end();
+    }
+    var session = await dbo
+      .collection("sessions")
+      .findOne({ sessionId: req.headers.authorization });
+    if (!session) {
+      res.status(401).end();
+    }
+    if (req.query.index); //...
+  });
+
+  app.patch("/message/:Id", async function(req, res) {
     res.setHeader("Content-Type", "application/json");
     if (!req.headers.authorization) {
       res.status(401).end();
@@ -169,34 +268,7 @@ MongoClient.connect(url, function(err, db) {
     }
   });
 
-  app.get("/messages/:Id", async function (req, res){
-    res.setHeader("Content-Type", "application/json");
-    if (!req.headers.authorization) {
-      res.status(401).end();
-    }
-    var session = await dbo
-      .collection("sessions")
-      .findOne({ sessionId: req.headers.authorization });
-    if (!session) {
-      res.status(401).end();
-    }
-    if(req.query.index);//...
-  });
-
-  app.patch("/message/:Id", async function (req, res){
-    res.setHeader("Content-Type", "application/json");
-    if (!req.headers.authorization) {
-      res.status(401).end();
-    }
-    var session = await dbo
-      .collection("sessions")
-      .findOne({ sessionId: req.headers.authorization });
-    if (!session) {
-      res.status(401).end();
-    }
-  });
-
-  app.delete("/message/:Id", async function (req, res){
+  app.delete("/message/:Id", async function(req, res) {
     res.setHeader("Content-Type", "application/json");
     if (!req.headers.authorization) {
       res.status(401).end();
