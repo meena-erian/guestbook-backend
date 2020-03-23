@@ -156,6 +156,59 @@ MongoClient.connect(url, function(err, db) {
     }
   });
 
+  app.post("/message/:Id", async function (req, res){
+    res.setHeader("Content-Type", "application/json");
+    if (!req.headers.authorization) {
+      res.status(401).end();
+    }
+    var session = await dbo
+      .collection("sessions")
+      .findOne({ sessionId: req.headers.authorization });
+    if (!session) {
+      res.status(401).end();
+    }
+  });
+
+  app.get("/messages/:Id", async function (req, res){
+    res.setHeader("Content-Type", "application/json");
+    if (!req.headers.authorization) {
+      res.status(401).end();
+    }
+    var session = await dbo
+      .collection("sessions")
+      .findOne({ sessionId: req.headers.authorization });
+    if (!session) {
+      res.status(401).end();
+    }
+    if(req.query.index);//...
+  });
+
+  app.patch("/message/:Id", async function (req, res){
+    res.setHeader("Content-Type", "application/json");
+    if (!req.headers.authorization) {
+      res.status(401).end();
+    }
+    var session = await dbo
+      .collection("sessions")
+      .findOne({ sessionId: req.headers.authorization });
+    if (!session) {
+      res.status(401).end();
+    }
+  });
+
+  app.delete("/message/:Id", async function (req, res){
+    res.setHeader("Content-Type", "application/json");
+    if (!req.headers.authorization) {
+      res.status(401).end();
+    }
+    var session = await dbo
+      .collection("sessions")
+      .findOne({ sessionId: req.headers.authorization });
+    if (!session) {
+      res.status(401).end();
+    }
+  });
+
   var server = app.listen(8080, function() {
     var port = server.address().port;
     console.log("API is listening at port:" + port);
