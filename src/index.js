@@ -59,7 +59,7 @@ MongoClient.connect(url, function(err, db) {
               },
               function(err, sessionInsertRes) {
                 if (err) throw err;
-                res.status(200).end(JSON.stringify({ id: sid }));
+                res.status(200).end(JSON.stringify({ "token": sid }));
               }
             );
           } else {
@@ -107,7 +107,7 @@ MongoClient.connect(url, function(err, db) {
                   },
                   function(err, sessionInsertRes) {
                     if (err) throw err;
-                    res.status(200).end(JSON.stringify({ id: sid }));
+                    res.status(200).end(JSON.stringify({ "token": sid }));
                   }
                 );
               }

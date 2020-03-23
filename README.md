@@ -85,6 +85,10 @@ POST /user/signup
  | username | An available alphanumeric username not less than 5 letters and not more than 30 |
  | password | The password that will be set for the new user |
 
+  | Accespted encoding |
+  |--------------------|
+  | `application/json` and `application/x-www-form-urlencoded` |
+
 **Responses**
 
 
@@ -194,30 +198,30 @@ Used to send a message to a user where `Id` can either be the unique _id of the 
 
 **Required POST Parameters**
 
- | Parameter | Value |
- |-----------|-------|
- | content | the mesesage contect |
+ | Parameter | Value | Accespted encoding |
+ |-----------|-------|--------------------|
+ | content | the mesesage content | `application/json` and `application/x-www-form-urlencoded` |
 
 **Response**
 
 ```json
 Status: 200 OK
 {
-    id : MESSAGE_ID
+    "id" : MESSAGE_ID
 }
 ```
 
 ```json
 Status: 401 Unauthorized
 {
-    error : "Either the Authorization header is not set or not valid"
+    "error" : "Either the Authorization header is not set or not valid"
 }
 ```
 
 ```json
 Status: 404 Not Found
 {
-    error: "Invalid 'Id' parameter"
+    "error": "Invalid 'Id' parameter"
 }
 ```
 
@@ -246,7 +250,16 @@ Used to get all messages in `ConversationId` after the message of id `MessageId`
 ```json
 Status: 200 OK
 {
-    messages : [
+    "messages" : [
+        {
+            "_id": "5e789082266340230c6d7a65",
+            "chatId": "5e77c200ce44701b94435dfb-5e783ba9c5b5b82f58e1e850",
+            "time": 1584959618134,
+            "sender": "5e783ba9c5b5b82f58e1e850",
+            "receiver": "5e77c200ce44701b94435dfb",
+            "content": "Hello guest!",
+            "status": "delivered"
+        },
         ...
     ]
 }
@@ -282,6 +295,12 @@ Used to edit the message if Id `MessageId`.
  | Header | Value |
  |--------|-------|
  | Authorization | Session id token of the message author |
+
+**Required POST parameters**
+
+ | Parameter | Value | Accespted encoding |
+ |-----------|-------|--------------------|
+ | content | the new content of the mesesage | `application/json` and `application/x-www-form-urlencoded` |
 
 **Response**
 ```json
