@@ -93,7 +93,7 @@ MongoClient.connect(url, function(err, db) {
               {
                 username: req.body.username,
                 password: req.body.password,
-                registered: (new Date()).getTime()
+                registered: new Date().getTime()
               },
               function(err, userInsertResult) {
                 if (err) throw err;
@@ -130,17 +130,16 @@ MongoClient.connect(url, function(err, db) {
     }
     var usersQuery = {};
     if (req.query.index) {
-      if(isNaN(req.query.index)){
-        usersQuery = { "_id": { $gt: ObjectId(req.query.index) } };
-      }
-      else{
+      if (isNaN(req.query.index)) {
+        usersQuery = { _id: { $gt: ObjectId(req.query.index) } };
+      } else {
         usersQuery = { registered: { $gt: parseInt(req.query.index) } };
       }
     }
     var users = await dbo
       .collection("users")
       .find(usersQuery, { sort: { registered: 1 }, fields: { password: 0 } });
-    var query = {'receiver': String(session.userId), status: "sent"};
+    var query = { receiver: String(session.userId), status: "sent" };
     console.log(query);
     var mesgs = await dbo.collection("messages").find(query);
     var jsonResponse = {};
@@ -196,9 +195,9 @@ MongoClient.connect(url, function(err, db) {
           res.status(404).end();
       }
       //Now lets make sure that the user specified as receiver exists
-        userReceiver = await dbo
-          .collection("users")
-          .findOne({ _id: new ObjectId(receiver) });
+      userReceiver = await dbo
+        .collection("users")
+        .findOne({ _id: new ObjectId(receiver) });
       if (!userReceiver) {
         res
           .status(404)
@@ -210,9 +209,9 @@ MongoClient.connect(url, function(err, db) {
       //this means that the fiven id is a user id of the user intended to recieve the message
       receiver = req.params.id;
       //Now lets make sure that the user specified as receiver exists
-        userReceiver = await dbo
-          .collection("users")
-          .findOne({ _id: new ObjectId(receiver) });
+      userReceiver = await dbo
+        .collection("users")
+        .findOne({ _id: new ObjectId(receiver) });
       if (!userReceiver) {
         res
           .status(404)
@@ -241,19 +240,58 @@ MongoClient.connect(url, function(err, db) {
     );
   });
 
-  app.get("/messages/:Id", async function(req, res) {
+  app.get("/messages/:id", async function(req, res) {
     res.setHeader("Content-Type", "application/json");
     if (!req.headers.authorization) {
-      res.status(401).end();
+      res.status(401).end('{"error" : "Bad credentials!"}');
     }
     var session = await dbo
       .collection("sessions")
       .findOne({ sessionId: req.headers.authorization });
-    if (!session) {
-      res.status(401).end();
+    if (!session || !req.params.id) {
+      res.status(401).end('{"error" : "Missing \'id\' parameter!"}');
     }
-    if (req.query.index); //...
+    var chatId = req.params.id.split("-", 2);
+    if (chatId.length !== 2) {
+      res.status(401).end('{"error" : "Invalid \'id\' parameter!"}');
+    }
+    /* 
+      First, lets make sure about 2 things:
+        1- The authorized user is a member in the specified chat
+        2- The other person exists in the database
+    */
+    var otherUser = "";
+    switch(String(session['userId'])){
+      case chatId[0]:
+        otherUser = chatId[1];
+      break;
+      case chatId[1]:
+        otherUser = chatId[0];
+      break;
+      default:
+        res.status(401).end('{"error" : "Access denied!"}');
+    }
+    //Now lets make sure the other user exists
+    var idLookupResult = await dbo.collection("users").findOne({'_id' : new ObjectId(otherUser) });
+    if(!idLookupResult){
+      res.status(404).end('{"error" : "User not found"}');
+    }
+    //Now everything is ok but we still don't know if there's any messages there
+    var query = {};
+    if(req.query.index){
+      query = {'_id': { $gt: new ObjectId(req.query.index) },'chatId' : chatId.join('-')}
+    }
+    else{
+      query = {'chatId' : chatId.join('-')};
+    }
+    var msgs = await dbo.collection('messages').find(query);
+    if(!await msgs.count()){
+      //No new messages
+      res.status(204).end('{"messages" : []');
+    }
+    res.status(200).end(JSON.stringify(await msgs.toArray()));
   });
+
 
   app.patch("/message/:Id", async function(req, res) {
     res.setHeader("Content-Type", "application/json");
