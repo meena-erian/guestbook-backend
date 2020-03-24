@@ -242,6 +242,7 @@ MongoClient.connect(url, function(err, db) {
       chatId: conversationId,
       time: new Date().getTime(),
       sender: String(session.userId),
+      senderName : session.username,
       receiver: receiver,
       content: req.body.content,
       status: "sent"
