@@ -145,9 +145,15 @@ MongoClient.connect(url, function(err, db) {
     var users = await dbo
       .collection("users")
       .find(usersQuery, { sort: { registered: 1 }, fields: { password: 0 } });
-    var query = { receiver: String(session.userId), status: "sent" };
-    console.log(query);
-    var mesgs = await dbo.collection("messages").find(query);
+    var messagesQuery = {}
+    if(req.query.index && !isNaN(req.query.index)){
+      messagesQuery = { receiver: String(session.userId), status: "sent", time : { $gt: parseInt(req.query.index) } };
+    }
+    else{
+      messagesQuery = { receiver: String(session.userId), status: "sent" };
+    }
+    console.log(messagesQuery);
+    var mesgs = await dbo.collection("messages").find(messagesQuery);
     var jsonResponse = {};
     var noResponse = true;
     if ((await users.count()) > 0) {
