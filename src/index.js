@@ -140,9 +140,9 @@ MongoClient.connect(url, function(err, db) {
     var usersQuery = {};
     if (req.query.index) {
       if (isNaN(req.query.index)) {
-        usersQuery = { _id: { $gt: ObjectId(req.query.index) } };
+        usersQuery = { _id: { $gt: ObjectId(req.query.index), $ne: ObjectId(session.userId) } };
       } else {
-        usersQuery = { registered: { $gt: parseInt(req.query.index) } };
+        usersQuery = { registered: { $gt: parseInt(req.query.index) }, _id: { $ne: ObjectId(session.userId)} };
       }
     }
     var users = await dbo
