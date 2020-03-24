@@ -39,6 +39,7 @@ MongoClient.connect(url, function(err, db) {
       });
   });
 
+  // To login to an account using username and password
   app.post("/user/login", function(req, res) {
     res.setHeader("Content-Type", "application/json");
     if (
@@ -75,6 +76,7 @@ MongoClient.connect(url, function(err, db) {
       );
   });
 
+  // To craete a new account
   app.post("/user/signup", function(req, res) {
     res.setHeader("Content-Type", "application/json");
     if (
@@ -123,6 +125,7 @@ MongoClient.connect(url, function(err, db) {
       );
   });
 
+  // To update the client side with anything new
   app.get("/notification", async function(req, res) {
     res.setHeader("Content-Type", "application/json");
     if (!req.headers.authorization) {
@@ -171,6 +174,7 @@ MongoClient.connect(url, function(err, db) {
     }
   });
 
+  // To send a message
   app.post("/message/:id", async function(req, res) {
     res.setHeader("Content-Type", "application/json");
     if (!req.headers.authorization) {
@@ -232,26 +236,30 @@ MongoClient.connect(url, function(err, db) {
       conversationId = [String(session.userId), receiver].sort().join("-");
     }
     //Now it's safe to insert the message
+
+    let NewMessage = {
+      // _id auto
+      chatId: conversationId,
+      time: new Date().getTime(),
+      sender: String(session.userId),
+      receiver: receiver,
+      content: req.body.content,
+      status: "sent"
+    };
     dbo.collection("messages").insertOne(
-      {
-        // _id auto
-        chatId: conversationId,
-        time: new Date().getTime(),
-        sender: String(session.userId),
-        receiver: receiver,
-        content: req.body.content,
-        status: "sent"
-      },
+      NewMessage,
       function(err, insertMessageRes) {
         if (err) throw err;
         console.log(insertMessageRes);
+        NewMessage._id = String(insertMessageRes["insertedId"]);
         res
           .status(200)
-          .end(JSON.stringify({ id: String(insertMessageRes["insertedId"]) }));
+          .end(JSON.stringify(NewMessage));
       }
     );
   });
 
+  // To fetch messages of a chat
   app.get("/messages/:id", async function(req, res) {
     res.setHeader("Content-Type", "application/json");
     if (!req.headers.authorization) {
@@ -314,6 +322,7 @@ MongoClient.connect(url, function(err, db) {
     res.status(200).end(JSON.stringify(await msgs.toArray()));
   });
 
+  // To edit a message
   app.patch("/message/:id", async function(req, res) {
     res.setHeader("Content-Type", "application/json");
     if (!req.headers.authorization) {
@@ -362,6 +371,7 @@ MongoClient.connect(url, function(err, db) {
     res.status(204).end();
   });
 
+  // To delete a message
   app.delete("/message/:id", async function(req, res) {
     res.setHeader("Content-Type", "application/json");
     if (!req.headers.authorization) {
