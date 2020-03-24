@@ -263,7 +263,13 @@ MongoClient.connect(url, function(err, db) {
     if (!session || !req.params.id) {
       res.status(401).end('{"error" : "Missing \'id\' parameter!"}');
     }
-    var chatId = req.params.id.split("-", 2);
+    var chatId = [];
+    if(req.params.id.indexOf("-") !== -1){
+      chatId = req.params.id.split("-", 2);
+    }
+    else{
+      chatId = [req.params.id, String(session.userId)].sort();
+    }
     if (chatId.length !== 2) {
       res.status(401).end('{"error" : "Invalid \'id\' parameter!"}');
     }
