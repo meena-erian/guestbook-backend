@@ -193,14 +193,15 @@ MongoClient.connect(url, function(err, db) {
       //sender must provid a valid login session
       res.status(401).end('{"error" : "Bad credentials!"}');
     }
-    if (!req.params.id) {
+    else if (!req.params.id) {
       //id parameter is required
       res.status(404).end('{"error" : "No recipient specified!"}');
     }
-    if (!req.body.content) {
+    else if (!req.body.content) {
       //Message body is required
       res.status(401).end('{"error" : "No content provided!"}');
     }
+	else {
     var conversationId = "";
     var receiver = "";
     if (req.params.id.indexOf("-") !== -1) {
@@ -264,7 +265,7 @@ MongoClient.connect(url, function(err, db) {
           .end(JSON.stringify(NewMessage));
       }
     );
-  });
+  }});
 
   // To fetch messages of a chat
   app.get("/messages/:id", async function(req, res) {
