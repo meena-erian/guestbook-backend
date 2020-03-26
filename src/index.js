@@ -10,6 +10,12 @@ var app = express();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+/*
+  Note: The following CORS policy is a temporary setting for beta testing and
+    Should not be applied a production version. A specific origin has to be 
+    specified rather than the astrisk "*" wildcard, or it would be even better
+    if the api can be on a subdomain of the same domain hosting the front-end app
+*/
 app.use(function(req, res, next) {
   res.header("Access-Control-Allow-Origin", "*");
   res.header("Access-Control-Allow-Headers", "Content-Type, Accept, Authorization");
@@ -318,8 +324,11 @@ MongoClient.connect(url, function(err, db) {
     var msgs = await dbo.collection("messages").find(query);
     if (!(await msgs.count())) {
       //No new messages
-      res.status(204).end('{"messages" : []');
+      res.status(204).end('{"messages" : []}');
     }
+    await dbo.collection("messages").updateMany(query, 
+      { $set: { status: "seen" } }
+    );
     res.status(200).end(JSON.stringify(await msgs.toArray()));
   });
 
