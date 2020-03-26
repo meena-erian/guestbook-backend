@@ -326,10 +326,12 @@ MongoClient.connect(url, function(err, db) {
       //No new messages
       res.status(204).end('{"messages" : []}');
     }
+    msgs = await msgs.toArray();
+    query.receiver = String(session.userId);
     await dbo.collection("messages").updateMany(query, 
       { $set: { status: "seen" } }
     );
-    res.status(200).end(JSON.stringify(await msgs.toArray()));
+    res.status(200).end(JSON.stringify(msgs));
   });
 
   // To edit a message
